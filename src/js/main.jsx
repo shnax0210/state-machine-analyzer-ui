@@ -13,6 +13,7 @@ const styled = require('styled-components').default;
 
 const Editor = require('./state-machine-editor-component.jsx').Editor;
 const Examples = require('./state-machine-examples-component.jsx').Examples;
+const Documentation = require('./state-machine-documentation-component.jsx').Documentation;
 
 const List = styled.ul`
     display: flex;
@@ -138,8 +139,7 @@ class Application extends React.Component {
             {
                 name: "Documentation",
                 path: `${props.basePath}/documentation`,
-                component: () => <h1>Please find it in <a href="https://github.com/shnax0210/state-machine-analyzer">Git
-                    repository</a></h1>
+                component: () => <Documentation/>
             }]
     }
 
