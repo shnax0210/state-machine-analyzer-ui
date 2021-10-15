@@ -1,8 +1,12 @@
 # Base info
 
-Web application that allows model different systems as state machines, play with it, check available states and transactions and show its graph.
+Web application that allows modeling different systems as state machines, play with it, check available states and transactions and show its graph.
 The application inspired by [TLA+](https://lamport.azurewebsites.net/tla/tla.html) 
-and has a goal to provide something similar but written in javascript and thus more adoptable by modern developers.
+and has a goal to provide something similar but written in javascript and thus more adoptable by developers.
+
+The application functionality is separated into two repositories:
+- [state-machine-analyzer](https://github.com/shnax0210/state-machine-analyzer) - repository with core functionality that is not dependent from UI and can be used like [npm package](https://www.npmjs.com/package/state-machine-analyzer)
+- [state-machine-analyzer-ui](https://github.com/shnax0210/state-machine-analyzer-ui) - Web UI of the application, depends on the `state-machine-analyzer` npm package.
 
 # Try it out
 
@@ -102,10 +106,32 @@ It contains next methods:
     * `input` - ether `state machine definition`, `transactions` or transactional `paths`;
 - `renderGraph(stateMachine)` - render state machine graph
     * `stateMachine` - state machine created by `createStateMachine(input)`
-    
+
+## State machine definition API
+
+State machine definition in an object that can be passed to `facade.createStateMachine(input)` method or to function with same name in [core library](https://github.com/shnax0210/state-machine-analyzer/blob/main/index.js) to create state machine.  It contains next properties:
+- `initalStates` - required array of objects field. Has arbitrary API defined by end customer. The initial states will be used during fist iteration of state machine building process.
+- `commands` - required array of objects field. Each command is applied to each state and forces transaction creation in case if the command changes the passed state. Command has next API:
+    * `name` - required field. String will be used for transaction creation in case if the command will produce one.
+    * `handle(state, chain)` - required field. Function that will be called for each possible state.
+    * * `state` - state object (during first iteration it will be a state from `initalStates` and then one from new faced states);
+    * * `chain` - optional parameter that is passed only in case of `chain` usage. It is an object with next API:
+    * * * `addNextCommand(commandName)` - schedules passed command name for execution during next iteration;
+    * * * `isNextCommand(commandName)` - checks if passed command name is already scheduled for execution during next iteration;
+    * * * `hasNextCommands()`  - checks if there are at list one command scheduled for execution during next iteration;
+    * * * `removeNextCommand(commandName)` - removed passed command name for execution during next iteration;
+- `isStateValid(state)` - optional function field. Determines if state should be marked as `Valid` or `InValid`. `InValid` states are highlighted with red color on UI and transactional paths to the states are highlighted with orange.
+- `continueOnInvalidState` - optional boolean field. By default, state machine building will be stopped after first invalid state found. It can be avoided by setting this field to `true`;
+- `isTransactionValid(transaction)` -  optional function field. Similar to `isStateValid(state)` but for transactions;
+- `continueOnInvalidTransaction` -  optional boolean field. Similar to `continueOnInvalidState` but for transactions;
+- `isChainHead` - optional boolean field. If set to true, the command creates a `chain` with name provided in `chainName` (must be provided with) if it's not already created;
+- `chainName` - optional boolean field (required if `isChainHead` set to true). Identifies a chain. Commands with this filed are executed only in next cases: 
+    * it's chain head (`isChainHead` is set to true) and chain with provided name is not created yet;
+    * it was scheduled from another command with same chain name.
+
 ## State machine API
 
-State machine can be created by `facade.createStateMachine(input)` function. It contains next methods:
+State machine can be created by `facade.createStateMachine(input)` function. It contains next properties:
 - `getTransactions()` - returns all transactions of the state machine;
 - `getWrappedStates()` - returns all states, each state is wrapped with object that contains some additional fields like unique `id` and `mark`.
 - `findPathsToInvalidStates()` - finds transactional paths between initial and invalid states. Returns object contains information about found paths;
@@ -118,5 +144,41 @@ State machine can be created by `facade.createStateMachine(input)` function. It 
 Transaction that can be fetched from state machine by `getTransactions()` method has next API:
 - `id` - unique transaction identifier;
 - `name` - is equal to `command` name (or chain name + command name in case of chains usage);
-- `from` - wrapped state from which the transaction is performed;
-- `to` - wrapped state to which the transaction is performed;
+- `from` - wrapped state from which the transaction leads;
+- `to` - wrapped state to which the transaction leads;
+- `mark` - there cab be next marks:
+    * InValid - identifiers invalid transactions (invalid transactions determined by `isTransactionValid(transaction)` method of state machine definition)
+    * LeadsToInValid - identifiers transactions that are part of path to invalid states or transactions
+    * Valid - identifiers valid transaction (all transactions that are not initial or invalid are valid ones)
+
+## Wrapped state (or state wrapper) API
+
+Wrapped state (or state wrapper) that can be fetched from state machine by `getWrappedStates()` method has next API:
+- `id` - unique state identifier;
+- `state` - real state object that is passed to `command.handle(state)` method. (`initalStates` also contains these real states, but not state wrappers)
+- `mark` - there cab be next marks: 
+    * Initial - identifiers initial states (ones that were passed as `initalStates` in state machine definition)
+    * InValid - identifiers invalid states (invalid states determined by `isStateValid(state)` method of state machine definition)
+    * Valid - identifiers valid states (all states that are not `Initial` or `InValid` are valid ones)
+
+## State API
+
+State is passed to `command.handle(state)` and contains arbitrary API that is defined in `initalStates` of state machine definition and can be anyhow changed in `command.handle(state)` method.
+So you can define whatever state you want, except next properties:
+- `activeChains` - the property can be added automatically in case of `chain` usage, and it contains currently active `chains` in this case.
+- `complitedChains` - the property can be added automatically in case of `chain` usage, and it contains currently completed `chains` in this case.
+
+## Transactional paths API
+
+Transactional paths can be got by `findPathsToInvalidStates()` and `findPaths(destinationStates, sourceStates)` state machine methods.
+The returned value is an object with next properties:
+- `stat` - an object that represents statistic of found transactional paths, it has next API:
+    * `count` - number of found transactional paths;
+    * `minLength` - length of the shortest transactional paths;
+    * `maxLength` - length of the longest transactional paths;
+    * `allLengths` - an array of object with next API (objects are sorted from the lowest length to highest):
+        * * `length` - length of transactional paths;
+        * * `count` - number of transactional paths with same `length`;
+- `getAll()` - returns an array of all transactional paths. So it's an array of arrays with transactions;
+- `getMin()` - returns the shortest array of transactional paths. So it's an array of arrays with transactions;
+- `getMax()` - returns the longest array of transactional paths. So it's an array of arrays with transactions;
