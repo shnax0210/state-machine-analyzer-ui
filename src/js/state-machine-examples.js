@@ -101,7 +101,7 @@ task={
 is not right. So here we define "isStateValid" function to check it.
 
 As you may see from final graph there are only few states and our invalid state is colored red. 
-This is because when state machine finds invalid state it stops and highlight the state with red.
+This is because when state machine finds invalid state it stops and highlights the state with red.
 
 However if you want not to stop state machine when it finds invalid state 
 you can uncomment "continueOnInvalidState: true," line to achive it.
@@ -155,7 +155,7 @@ This is fourth example for emulation of working on some task.
 
 In previous example we highlighted invalid state.
 
-Here we just with "StartWorking" command handler in order to make the invalid state not possible.
+Here we just fix "StartWorking" command handler in order to make the invalid state not possible.
 */
 
 const stateMachineDefinition = {
@@ -207,7 +207,28 @@ facade.renderGraph(facade.createStateMachine(stateMachineDefinition));`
             {
                 name: "Billing address update",
                 code: `/*
-Examples emulates updating billing address from UI by ajax calls.
+This example with "chain usage. Please check documentation for details regarding chains.
+
+Let's imagine a situation that there is a UI web page where a user inputs his billing address
+and then press button "calculate taxes", after it front end makes an ajax call to backend server 
+with the billing address, the backend server calculates taxes, update it in the user cart and return taxes back to the front end,
+and then finally the front end updates the taxes UI
+
+And let's imagine that there is no any prevention mechanism from pressing the button multiple times.
+So user can put one billing address, press the button and then quickly put another billing address and press the button again. 
+So second request will be sent to the server in time when first one is not finished yet.
+
+Can we have inconsistent state in this case? Let's emulate it and see.
+
+Here we have two addresses: ADDRESS1 and ADDRESS2.
+And we create two chains (one per address), each consist from two commands: 
+ - SetBillingAddress - emulates processing of the ajax call on backend server
+ - UpdatePriceOnUi - emulates returning of calculated tax response via network and updating it on UI. 
+ 
+As we can see after model running, there are two red states, 
+each of them contains mismatch of taxes on UI and in the user cart on backend.
+
+So that is why good practical is: disabling buttons after their pressing till completion of the operation started (by the button pressing);
 */
 
 const ADDRESS1 = {

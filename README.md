@@ -48,10 +48,10 @@ There are some other possible properties as well, but these two are required and
 In general, state machine building is an iterative process to obtain `states` and `transactions` from `initialStates` and `commands`.
 
 ### Human language description of state machine building process:
-1. We remember `initalStates`, since they are fist states of our state machine that we build.
+1. We remember `initalStates`, since they are first states of our state machine that we build.
 
 2. During first iteration, we apply each `command` to all `initalStates`. 
-If `command` changes the passed to it state, than we create and remember state machine transaction for it (with same name as command one).
+If `command` changes the passed to it state, then we create and remember state machine transaction for it (with same name as command one).
 And if the changed state is new one (means we didn't see it before) - then we remember the state.
 
 3. On next iteration we do the same but apply each `command` to the remembered states from previous iteration (instead of `initalStates`).
