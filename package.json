@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "src/js/main.js",
   "dependencies": {
-    "@dagrejs/graphlib": "2.1.4",
+    "@dagrejs/graphlib": "2.2.4",
     "d3": "5.16",
     "dagre-d3": "0.6.4",
     "history": "4.10.1",
